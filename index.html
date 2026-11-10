@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Agendá con Nico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+  /* Misma piel que el OS del Cerebro: verde profundo, vidrio, serif grande.
+     Distribución: píldoras arriba + botón redondo, fecha gigante, bloques de color por día. */
+  :root {
+    color-scheme: dark;
+    --bg0: #07140e;
+    --glass: rgba(232, 246, 222, .07);
+    --glass2: rgba(232, 246, 222, .12);
+    --stroke: rgba(232, 246, 222, .16);
+    --ink: #eef5e6; --ink2: #b3c6b2; --ink3: #86a092;
+    --sage: #cfe5b0; --sage-ink: #0e281c;
+    --lime: #c9e445; --lime-ink: #17260a;
+    --amber: #f2c98a; --amber-ink: #2b1c05;
+    --rose: #f0a08e; --rose-ink: #2e0f08;
+    --sky: #9fd3c7; --sky-ink: #072620;
+    --lila: #c9b6f2; --lila-ink: #1c1238;
+    --field: rgba(4, 14, 9, .45);
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --sans: "Manrope", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body {
+    margin: 0; background: var(--bg0); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 18px 48px; min-height: 100vh; position: relative; overflow-x: hidden;
+  }
+  [hidden] { display: none !important; }
+  a { color: inherit; }
+  button, input, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
+
+  .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    background: radial-gradient(80% 50% at 20% 0%, #1b4a35 0%, transparent 70%), radial-gradient(70% 50% at 100% 100%, #14382a 0%, transparent 70%), var(--bg0); }
+  .leaf { position: absolute; border-radius: 0 100% 0 100%; filter: blur(30px); opacity: .55; }
+  .leaf.l1 { width: 340px; height: 420px; left: -130px; top: -90px; background: linear-gradient(160deg, #2f7a55, #123a28); transform: rotate(-20deg); }
+  .leaf.l2 { width: 300px; height: 380px; right: -150px; top: 32%; background: linear-gradient(200deg, #4b8b4e, #173d2a); transform: rotate(25deg); }
+  .leaf.l3 { width: 360px; height: 300px; left: -70px; bottom: -130px; background: linear-gradient(20deg, #1d5a45, #0b2318); transform: rotate(10deg); }
+
+  .app { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; }
+  .view { display: flex; flex-direction: column; gap: 14px; }
+  .glass { background: var(--glass); border: 1px solid var(--stroke); border-radius: 26px;
+    -webkit-backdrop-filter: blur(18px) saturate(1.15); backdrop-filter: blur(18px) saturate(1.15);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 10px 30px rgba(0,0,0,.25); }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass { background: rgba(20, 52, 38, .86); } }
+  .serif { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; }
+  .d-f b, .f-izq b, .f-der b { font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum" 1; }
+  .k { font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); margin: 0; }
+  svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  svg.i.s { width: 16px; height: 16px; }
+
+  /* cabecera */
+  .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 6px 4px 2px; }
+  .greet { font-size: 40px; line-height: 1; margin: 4px 0 0; text-wrap: balance; overflow-wrap: anywhere; }
+  .greet em { font-style: italic; font-weight: 500; color: var(--sage); }
+  .lead { font-size: 13px; color: var(--ink2); margin: 8px 0 0; max-width: 40ch; }
+  .badge { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--glass2); border: 1px solid var(--stroke); color: var(--sage); }
+
+  /* barra: píldoras + botón redondo */
+  .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tab { padding: 9px 18px; border-radius: 999px; border: 1px solid var(--stroke); background: var(--glass); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink2); }
+  .tab[aria-pressed="true"] { background: var(--sage); color: var(--sage-ink); border-color: transparent; }
+  .round { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; background: var(--glass2); border: 1px solid var(--stroke); color: var(--ink); margin-left: auto; flex: none; }
+  .seg { align-self: flex-start; display: inline-flex; flex-wrap: wrap; padding: 4px; gap: 4px; border-radius: 22px; background: var(--field); border: 1px solid var(--stroke); }
+  .seg button { border: 0; background: none; padding: 7px 11px; border-radius: 999px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink2); }
+  .seg button[aria-pressed="true"] { background: var(--sage); color: var(--sage-ink); }
+  .seg small { font-weight: 500; opacity: .75; margin-left: 4px; }
+
+  /* bloques por día */
+  .dias { display: flex; flex-direction: column; gap: 10px; }
+  .dia { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 14px; padding: 14px 14px 14px 16px; border-radius: 24px; background: var(--c, var(--glass)); color: var(--ci, var(--ink)); border: 1px solid var(--cb, transparent); }
+  .dia.c0 { --c: var(--glass); --ci: var(--ink); --cb: var(--stroke); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  .dia.c1 { --c: var(--rose); --ci: var(--rose-ink); }
+  .dia.c2 { --c: var(--lila); --ci: var(--lila-ink); }
+  .dia.c3 { --c: var(--amber); --ci: var(--amber-ink); }
+  .dia.c4 { --c: var(--sage); --ci: var(--sage-ink); }
+  .dia.c5 { --c: var(--sky); --ci: var(--sky-ink); }
+  .d-f { display: flex; flex-direction: column; justify-content: center; line-height: 1; padding-right: 12px; border-right: 1px solid color-mix(in srgb, currentColor 28%, transparent); }
+  .d-f span { font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+  .d-f b { font-family: var(--serif); font-size: 38px; font-weight: 600; margin: 2px 0; }
+  .d-h { display: flex; flex-wrap: wrap; gap: 8px; align-content: center; }
+  .hora { border: 0; cursor: pointer; padding: 9px 12px; border-radius: 12px; font-weight: 700; font-size: 13.5px; font-variant-numeric: tabular-nums;
+    background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; }
+  .hora:hover { background: color-mix(in srgb, currentColor 26%, transparent); }
+  .vacio { padding: 18px; color: var(--ink2); margin: 0; }
+  .vacio b { color: var(--ink); display: block; font-family: var(--serif); font-size: 24px; line-height: 1.1; margin-bottom: 4px; }
+
+  /* fecha gigante */
+  .fecha { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 20px 22px; }
+  .f-izq { line-height: 1; min-width: 0; }
+  .f-izq span { display: block; font-size: 13px; font-weight: 600; color: var(--ink2); text-transform: capitalize; }
+  .f-izq b { display: block; font-family: var(--serif); font-weight: 600; font-size: 84px; line-height: .86; margin: 6px 0 4px; }
+  .f-izq .mes { font-size: 22px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); font-weight: 500; }
+  .f-der { text-align: right; padding-left: 18px; border-left: 1px solid var(--stroke); line-height: 1.25; }
+  .f-der b { display: block; font-family: var(--serif); font-size: 40px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+  .f-der span { display: block; font-size: 12px; color: var(--ink2); }
+
+  /* formulario */
+  .form { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .form label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink3); margin-top: 6px; }
+  .form label i { font-style: normal; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .field { width: 100%; min-width: 0; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--stroke); background: var(--field); color: var(--ink); font-size: 15px; }
+  .field::placeholder { color: var(--ink3); }
+  textarea.field { resize: vertical; min-height: 64px; }
+  .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .pill { display: inline-flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 14px 13px 22px; border-radius: 999px; border: 0; cursor: pointer; font-weight: 700; font-size: 14px; text-decoration: none; }
+  .pill.sage { background: var(--sage); color: var(--sage-ink); }
+  .pill.lime { background: var(--lime); color: var(--lime-ink); }
+  .pill.ghost { background: var(--glass2); color: var(--ink); border: 1px solid var(--stroke); font-weight: 600; }
+  .pill .arr { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgba(14,40,28,.14); }
+  .pill.ghost .arr { background: rgba(232,246,222,.12); }
+  .pill:disabled { opacity: .5; cursor: default; }
+  .back { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px 8px 10px; border-radius: 999px; background: var(--glass2); border: 1px solid var(--stroke); cursor: pointer; font-weight: 600; font-size: 13px; }
+  .acciones { display: flex; flex-direction: column; gap: 10px; }
+  .aviso { margin: 0; font-size: 13px; color: var(--amber); }
+  .aviso:empty { display: none; }
+  .nota { margin: 0 6px; font-size: 12px; color: var(--ink3); }
+  .status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 6px; font-size: 11.5px; color: var(--ink3); }
+  .status button { background: none; border: 0; padding: 0; color: var(--sage); text-decoration: underline; cursor: pointer; font-size: 11.5px; }
+  .ya { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-color: rgba(201,228,69,.35); }
+  .ya .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); flex: none; }
+  .ya p { margin: 0; font-size: 13px; color: var(--ink2); } .ya b { color: var(--ink); }
+  .hecho { padding: 22px; }
+  .hecho h2 { font-size: 44px; line-height: 1; margin: 8px 0 8px; text-wrap: balance; overflow-wrap: anywhere; }
+  .hecho h2 em { font-style: italic; font-weight: 500; color: var(--sage); }
+  .hecho p { margin: 0; color: var(--ink2); max-width: 38ch; }
+  .demo { margin: 0; padding: 8px 14px; border-radius: 14px; border: 1px dashed var(--amber); color: var(--amber); font-size: 12px; }
+
+  @media (min-width: 700px) { .greet { font-size: 48px; } }
+  @media (max-width: 360px) { .f-izq b { font-size: 68px; } .f-der b { font-size: 32px; } .dia { grid-template-columns: 54px minmax(0, 1fr); } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><div class="leaf l1"></div><div class="leaf l2"></div><div class="leaf l3"></div></div>
+
+<main class="app">
+
+  <!-- ============ 1 · ELEGIR ============ -->
+  <section class="view" id="v-elegir">
+    <div class="top">
+      <div>
+        <p class="k">Agenda de Nico</p>
+        <h1 class="greet serif" id="saludo">Elegí tu <em>horario</em></h1>
+        <p class="lead">Tocá el horario que te quede cómodo. Lo agendás vos y nos queda anotado a los dos.</p>
+      </div>
+      <span class="badge" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.4-6.6C9.5 13.7 12 13 12 13"/></svg></span>
+    </div>
+
+    <p class="demo" id="demo" hidden>Vista de prueba: los horarios son de ejemplo y nada se guarda.</p>
+    <div class="glass ya" id="ya" hidden><span class="dot"></span><p id="yaT"></p></div>
+
+    <div class="bar" id="filtros">
+      <button class="tab" type="button" data-f="hoy" aria-pressed="false">Hoy</button>
+      <button class="tab" type="button" data-f="manana" aria-pressed="false">Mañana</button>
+      <button class="tab" type="button" data-f="todo" aria-pressed="true">Todo</button>
+      <button class="round" type="button" id="btnPedido" aria-label="Proponer otro horario" title="Proponer otro horario"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="seg" id="tipos" role="group" aria-label="Tipo de encuentro"></div>
+
+    <div class="dias" id="dias" aria-live="polite"><p class="glass vacio">Buscando horarios libres…</p></div>
+    <p class="status" id="estado"></p>
+    <p class="nota">Los horarios están en hora de Argentina. Si ninguno te sirve, tocá el + y proponé otro.</p>
+  </section>
+
+  <!-- ============ 2 · CONFIRMAR ============ -->
+  <section class="view" id="v-confirmar" hidden>
+    <button class="back" type="button" data-volver><svg class="i s" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Cambiar horario</button>
+    <div class="fecha glass">
+      <div class="f-izq"><span id="cDia">—</span><b id="cNum">—</b><span class="mes" id="cMes">—</span></div>
+      <div class="f-der"><b id="cHora">—</b><span id="cTipo">—</span><span>Hora de Argentina</span></div>
+    </div>
+    <form class="glass form" id="fReserva" autocomplete="on" novalidate>
+      <label for="rNombre">Tu nombre</label>
+      <input class="field" id="rNombre" name="name" maxlength="60" autocomplete="name" placeholder="Nombre y apellido" required>
+      <label for="rTel">Tu WhatsApp</label>
+      <input class="field" id="rTel" name="tel" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Ej.: 297 412 3456" required>
+      <label for="rMail">Email <i>· opcional, te llega la invitación al calendario</i></label>
+      <input class="field" id="rMail" name="email" type="email" maxlength="120" autocomplete="email" placeholder="vos@ejemplo.com">
+      <label for="rNota">¿De qué querés que hablemos? <i>· opcional</i></label>
+      <textarea class="field" id="rNota" maxlength="300" placeholder="Tu negocio, lo que necesitás, lo que te gustaría resolver…"></textarea>
+      <input class="trampa" id="rWeb" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="aviso" id="rAviso" role="alert"></p>
+      <button class="pill sage" type="submit" id="rEnviar"><span id="rEnviarT">Agendar</span><span class="arr"><svg class="i s" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span></button>
+    </form>
+    <p class="nota">Tus datos le llegan solo a Nico, para coordinar este encuentro.</p>
+  </section>
+
+  <!-- ============ 3 · LISTO ============ -->
+  <section class="view" id="v-listo" hidden>
+    <div class="glass hecho">
+      <p class="k">Agendado</p>
+      <h2 class="serif" id="lTit">Listo</h2>
+      <p id="lTxt"></p>
+    </div>
+    <div class="fecha glass">
+      <div class="f-izq"><span id="lDia">—</span><b id="lNum">—</b><span class="mes" id="lMes">—</span></div>
+      <div class="f-der"><b id="lHora">—</b><span id="lTipo">—</span><span>Hora de Argentina</span></div>
+    </div>
+    <div class="acciones">
+      <a class="pill lime" id="lGcal" href="#" target="_blank" rel="noopener"><span>Guardar en mi Google Calendar</span><span class="arr"><svg class="i s" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span></a>
+      <button class="pill ghost" type="button" id="lIcs"><span>Guardar en otro calendario</span><span class="arr"><svg class="i s" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span></button>
+      <a class="pill ghost" id="lWa" href="#" target="_blank" rel="noopener" hidden><span>Avisarle a Nico por WhatsApp</span><span class="arr"><svg class="i s" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></a>
+    </div>
+    <p class="nota">Si se te complica, avisá con tiempo y lo movemos. Guardalo en tu calendario para que no se te pase.</p>
+  </section>
+
+  <!-- ============ PROPONER OTRO HORARIO ============ -->
+  <section class="view" id="v-pedido" hidden>
+    <button class="back" type="button" data-volver><svg class="i s" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Ver horarios</button>
+    <div class="top"><div>
+      <p class="k">¿Ninguno te sirve?</p>
+      <h1 class="greet serif">Proponé <em>otro</em></h1>
+      <p class="lead">Decime qué día y a qué hora podés. Nico te confirma por WhatsApp.</p>
+    </div></div>
+    <form class="glass form" id="fPedido" novalidate>
+      <label for="pNombre">Tu nombre</label>
+      <input class="field" id="pNombre" maxlength="60" autocomplete="name" placeholder="Nombre y apellido" required>
+      <label for="pTel">Tu WhatsApp</label>
+      <input class="field" id="pTel" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Ej.: 297 412 3456" required>
+      <label for="pCuando">¿Cuándo podés?</label>
+      <textarea class="field" id="pCuando" maxlength="300" placeholder="Ej.: el sábado a la tarde, o cualquier día después de las 20" required></textarea>
+      <input class="trampa" id="pWeb" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="aviso" id="pAviso" role="alert"></p>
+      <button class="pill sage" type="submit" id="pEnviar"><span id="pEnviarT">Enviar propuesta</span><span class="arr"><svg class="i s" viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></svg></span></button>
+    </form>
+  </section>
+
+  <section class="view" id="v-pedido-ok" hidden>
+    <div class="glass hecho">
+      <p class="k">Enviado</p>
+      <h2 class="serif">Le llegó a <em>Nico</em></h2>
+      <p>Te escribe por WhatsApp para confirmar el horario que propusiste.</p>
+    </div>
+    <button class="pill ghost" type="button" data-volver><span>Ver los horarios libres</span><span class="arr"><svg class="i s" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span></button>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ───────── Configuración ─────────
+     API: la URL del backend (Apps Script, termina en /exec).
+     Vacía = modo demostración: muestra horarios de ejemplo y no guarda nada. */
+  var API = '';
+
+  var ZONA = 'America/Argentina/Buenos_Aires', OFFSET = '-03:00';
+  var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  var DC = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var MC = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+  var TIPOS = { reunion: { nombre: 'Reunión', min: 30 }, llamada: { nombre: 'Llamada', min: 15 }, grabacion: { nombre: 'Grabación', min: 120 } };
+  var ARTICULO = { reunion: 'la reunión', llamada: 'la llamada', grabacion: 'la grabación' };
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function partes(ymd) { var p = ymd.split('-').map(Number); return { y: p[0], m: p[1], d: p[2], dow: new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay() }; }
+  function ymdEnZona(ms) { return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms)); }
+  function minutosAhora() {
+    var f = new Intl.DateTimeFormat('en-GB', { timeZone: ZONA, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).split(':');
+    return (+f[0]) * 60 + (+f[1]);
+  }
+  function duracion(min) { return min >= 60 ? (min % 60 ? (min / 60).toFixed(1).replace('.', ',') + ' h' : (min / 60) + ' h') : min + ' min'; }
+  function fechaLarga(ymd) { var p = partes(ymd); return DIAS[p.dow] + ' ' + p.d + ' de ' + MESES[p.m - 1]; }
+  function soloDigitos(s) { return String(s || '').replace(/\D/g, ''); }
+  function guardar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function leer(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+
+  /* El link puede traer el nombre y el tipo: …/#n=Sofía&t=reunion */
+  var h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  var invitado = (h.get('n') || '').replace(/[<>]/g, '').trim().slice(0, 40);
+  var DEMO = !API || h.has('demo');
+
+  var st = { tipo: TIPOS[h.get('t')] ? h.get('t') : 'reunion', filtro: 'todo', datos: null, sel: null, cargando: false, wa: '', ultima: null };
+
+  /* ───────── vistas ───────── */
+  var VISTAS = ['elegir', 'confirmar', 'listo', 'pedido', 'pedido-ok'];
+  function ver(v) {
+    VISTAS.forEach(function (x) { $('v-' + x).hidden = x !== v; });
+    window.scrollTo(0, 0);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-volver]'), function (b) {
+    b.addEventListener('click', function () { ver('elegir'); });
+  });
+
+  /* ───────── datos ───────── */
+  function pedir(url, opciones) {
+    var c = new AbortController(), t = setTimeout(function () { c.abort(); }, 20000);
+    opciones = opciones || {}; opciones.signal = c.signal;
+    return fetch(url, opciones).then(function (r) { clearTimeout(t); if (!r.ok) throw new Error('http'); return r.json(); },
+      function (e) { clearTimeout(t); throw e; });
+  }
+  function enviar(cuerpo) {
+    if (DEMO) return new Promise(function (ok) { setTimeout(function () { ok({ ok: true, demo: true }); }, 600); });
+    return pedir(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(cuerpo) });
+  }
+  function ejemplo(tipo) {
+    var dias = [], ahora = minutosAhora();
+    for (var i = 0; i < 16; i++) {
+      var ymd = ymdEnZona(Date.now() + i * 86400000), p = partes(ymd);
+      if (p.dow === 0 || p.dow === 6) continue;
+      var base = ['13:00', '13:30', '14:00', '14:30', '15:00', '15:30'];
+      if (tipo === 'grabacion') base = ['13:00', '13:30', '14:00'];
+      if (tipo === 'llamada') base = base.concat(['15:45']);
+      var horas = base.filter(function (hh, j) {
+        if ((p.d + j * 3) % 5 === 0) return false;
+        if (i === 0) { var q = hh.split(':'); return (+q[0]) * 60 + (+q[1]) > ahora + 180; }
+        return true;
+      });
+      if (horas.length) dias.push({ fecha: ymd, horas: horas });
+    }
+    return { ok: true, tipo: tipo, dias: dias, tipos: TIPOS, whatsapp: '' };
+  }
+  function cargar() {
+    st.cargando = true; st.datos = null; pintar();
+    var p = DEMO ? Promise.resolve(ejemplo(st.tipo)) : pedir(API + '?a=slots&t=' + encodeURIComponent(st.tipo));
+    var pedido = st.tipo;
+    p.then(function (d) {
+      if (pedido !== st.tipo) return;
+      if (!d || !d.ok || !Array.isArray(d.dias)) throw new Error('forma');
+      if (d.tipos) Object.keys(d.tipos).forEach(function (k) { if (TIPOS[k]) { TIPOS[k].min = d.tipos[k].min || TIPOS[k].min; } });
+      st.wa = soloDigitos(d.whatsapp);
+      st.datos = d; st.cargando = false; pintarTipos(); pintar();
+    }).catch(function () {
+      if (pedido !== st.tipo) return;
+      st.cargando = false; st.datos = null; pintar(true);
+    });
+  }
+
+  /* ───────── pintar ───────── */
+  function pintarTipos() {
+    var c = $('tipos'); c.textContent = '';
+    Object.keys(TIPOS).forEach(function (k) {
+      var b = el('button', '', TIPOS[k].nombre); b.type = 'button';
+      b.appendChild(el('small', '', duracion(TIPOS[k].min)));
+      b.setAttribute('aria-pressed', k === st.tipo ? 'true' : 'false');
+      b.addEventListener('click', function () { if (st.tipo === k) return; st.tipo = k; pintarTipos(); cargar(); });
+      c.appendChild(b);
+    });
+  }
+  function pintar(fallo) {
+    var c = $('dias'), e = $('estado'); c.textContent = ''; e.textContent = '';
+    Array.prototype.forEach.call($('filtros').querySelectorAll('.tab'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-f') === st.filtro ? 'true' : 'false');
+    });
+    if (st.cargando) { c.appendChild(el('p', 'glass vacio', 'Buscando horarios libres…')); return; }
+    if (fallo || !st.datos) {
+      var v = el('p', 'glass vacio'); v.appendChild(el('b', '', 'No pude cargar los horarios')); v.appendChild(document.createTextNode('Puede ser la conexión. Probá de nuevo en un momento.'));
+      c.appendChild(v);
+      var r = el('button', '', 'Reintentar'); r.type = 'button'; r.addEventListener('click', cargar); e.appendChild(r);
+      return;
+    }
+    var hoy = ymdEnZona(Date.now()), man = ymdEnZona(Date.now() + 86400000);
+    var dias = st.datos.dias.filter(function (d) { return st.filtro === 'todo' || (st.filtro === 'hoy' ? d.fecha === hoy : d.fecha === man); });
+    if (!dias.length) {
+      var v2 = el('p', 'glass vacio');
+      v2.appendChild(el('b', '', st.filtro === 'hoy' ? 'Hoy ya no quedan horarios' : st.filtro === 'manana' ? 'Mañana no hay horarios libres' : 'No hay horarios libres por ahora'));
+      v2.appendChild(document.createTextNode(st.filtro === 'todo' ? 'Tocá el + y proponé el día y la hora que te sirvan.' : 'Mirá en «Todo» los próximos días.'));
+      c.appendChild(v2); return;
+    }
+    dias.forEach(function (d, i) {
+      var p = partes(d.fecha), art = el('article', 'dia c' + (i % 6));
+      art.setAttribute('aria-label', fechaLarga(d.fecha));
+      var f = el('div', 'd-f'); f.appendChild(el('span', '', d.fecha === hoy ? 'HOY' : DC[p.dow])); f.appendChild(el('b', '', String(p.d))); f.appendChild(el('span', '', MC[p.m - 1]));
+      var hs = el('div', 'd-h');
+      d.horas.forEach(function (hh) {
+        var b = el('button', 'hora', hh); b.type = 'button';
+        b.setAttribute('aria-label', fechaLarga(d.fecha) + ' a las ' + hh);
+        b.addEventListener('click', function () { elegir(d.fecha, hh); });
+        hs.appendChild(b);
+      });
+      art.appendChild(f); art.appendChild(hs); c.appendChild(art);
+    });
+  }
+  function ponerFecha(pref, fecha, hora, tipo) {
+    var p = partes(fecha);
+    $(pref + 'Dia').textContent = DIAS[p.dow]; $(pref + 'Num').textContent = String(p.d); $(pref + 'Mes').textContent = MESES[p.m - 1];
+    $(pref + 'Hora').textContent = hora; $(pref + 'Tipo').textContent = TIPOS[tipo].nombre + ' · ' + duracion(TIPOS[tipo].min);
+  }
+  function elegir(fecha, hora) {
+    st.sel = { fecha: fecha, hora: hora, tipo: st.tipo };
+    ponerFecha('c', fecha, hora, st.tipo);
+    $('rEnviarT').textContent = 'Agendar ' + ARTICULO[st.tipo];
+    $('rAviso').textContent = '';
+    if (invitado && !$('rNombre').value) $('rNombre').value = invitado;
+    ver('confirmar');
+    setTimeout(function () { try { ($('rNombre').value ? $('rTel') : $('rNombre')).focus({ preventScroll: true }); } catch (e) {} }, 60);
+  }
+
+  $('filtros').addEventListener('click', function (ev) {
+    var b = ev.target.closest('.tab'); if (!b) return;
+    st.filtro = b.getAttribute('data-f'); pintar();
+  });
+  $('btnPedido').addEventListener('click', function () {
+    if (invitado && !$('pNombre').value) $('pNombre').value = invitado;
+    $('pAviso').textContent = ''; ver('pedido');
+  });
+
+  /* ───────── validar ───────── */
+  function validar(nombre, tel, mail) {
+    if (nombre.trim().length < 2) return 'Falta tu nombre.';
+    var d = soloDigitos(tel);
+    if (d.length < 8 || d.length > 15) return 'Revisá el WhatsApp: tiene que tener entre 8 y 15 números.';
+    if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail.trim())) return 'Ese email no parece válido. Podés dejarlo vacío.';
+    return '';
+  }
+
+  /* ───────── reservar ───────── */
+  $('fReserva').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (!st.sel) return;
+    var nombre = $('rNombre').value, tel = $('rTel').value, mail = $('rMail').value, nota = $('rNota').value;
+    var err = validar(nombre, tel, mail);
+    if (err) { $('rAviso').textContent = err; return; }
+    var btn = $('rEnviar'), txt = $('rEnviarT').textContent;
+    btn.disabled = true; $('rEnviarT').textContent = 'Agendando…'; $('rAviso').textContent = '';
+    var s = st.sel;
+    enviar({ a: 'reservar', t: s.tipo, fecha: s.fecha, hora: s.hora, nombre: nombre.trim(), tel: tel.trim(), email: mail.trim(), nota: nota.trim(), web: $('rWeb').value })
+      .then(function (r) {
+        btn.disabled = false; $('rEnviarT').textContent = txt;
+        if (r && r.ok) { listo(s, nombre.trim()); return; }
+        if (r && r.error === 'ocupado') {
+          $('rAviso').textContent = '';
+          ver('elegir'); cargar();
+          $('estado').textContent = 'Ese horario se acaba de ocupar. Elegí otro.';
+          return;
+        }
+        $('rAviso').textContent = (r && r.mensaje) || 'No se pudo agendar. Probá de nuevo.';
+      })
+      .catch(function () {
+        btn.disabled = false; $('rEnviarT').textContent = txt;
+        $('rAviso').textContent = 'No hubo respuesta. Antes de reintentar, esperá un momento: puede haberse agendado igual.';
+      });
+  });
+
+  function aUtc(fecha, hora, sumarMin) {
+    var d = new Date(new Date(fecha + 'T' + hora + ':00' + OFFSET).getTime() + (sumarMin || 0) * 60000);
+    return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  }
+  function listo(s, nombre) {
+    var t = TIPOS[s.tipo], primer = nombre.split(/\s+/)[0];
+    $('lTit').textContent = 'Listo, '; var em = el('em', '', primer); $('lTit').appendChild(em);
+    $('lTxt').textContent = 'Agendaste ' + ARTICULO[s.tipo] + ' para el ' + fechaLarga(s.fecha) + ' a las ' + s.hora + '. Nico ya la tiene en su calendario y te espera.';
+    ponerFecha('l', s.fecha, s.hora, s.tipo);
+    var titulo = t.nombre + ' con Nico', det = 'Agendada por ' + nombre + '.';
+    $('lGcal').href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(titulo) +
+      '&dates=' + aUtc(s.fecha, s.hora) + '/' + aUtc(s.fecha, s.hora, t.min) + '&details=' + encodeURIComponent(det);
+    st.ultima = { s: s, titulo: titulo, det: det, min: t.min };
+    var wa = $('lWa');
+    if (st.wa) {
+      wa.href = 'https://wa.me/' + st.wa + '?text=' + encodeURIComponent('Hola Nico, soy ' + nombre + '. Agendé ' + ARTICULO[s.tipo] + ' para el ' + fechaLarga(s.fecha) + ' a las ' + s.hora + '.');
+      wa.hidden = false;
+    } else wa.hidden = true;
+    if (!DEMO) guardar('agenda-reserva', { fecha: s.fecha, hora: s.hora, tipo: s.tipo });
+    ver('listo');
+  }
+  $('lIcs').addEventListener('click', function () {
+    var u = st.ultima; if (!u) return;
+    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Agenda de Nico//ES', 'BEGIN:VEVENT',
+      'UID:' + aUtc(u.s.fecha, u.s.hora) + '-' + Math.random().toString(36).slice(2) + '@agenda-nico',
+      'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''),
+      'DTSTART:' + aUtc(u.s.fecha, u.s.hora), 'DTEND:' + aUtc(u.s.fecha, u.s.hora, u.min),
+      'SUMMARY:' + u.titulo, 'DESCRIPTION:' + u.det,
+      'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', 'DESCRIPTION:' + u.titulo, 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+    a.download = 'encuentro-con-nico.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  /* ───────── proponer otro horario ───────── */
+  $('fPedido').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var nombre = $('pNombre').value, tel = $('pTel').value, cuando = $('pCuando').value.trim();
+    var err = validar(nombre, tel, '') || (cuando.length < 3 ? 'Contame qué día y hora te sirven.' : '');
+    if (err) { $('pAviso').textContent = err; return; }
+    var btn = $('pEnviar'); btn.disabled = true; $('pEnviarT').textContent = 'Enviando…'; $('pAviso').textContent = '';
+    enviar({ a: 'pedido', t: st.tipo, nombre: nombre.trim(), tel: tel.trim(), cuando: cuando, web: $('pWeb').value })
+      .then(function (r) {
+        btn.disabled = false; $('pEnviarT').textContent = 'Enviar propuesta';
+        if (r && r.ok) { $('pCuando').value = ''; ver('pedido-ok'); return; }
+        $('pAviso').textContent = (r && r.mensaje) || 'No se pudo enviar. Probá de nuevo.';
+      })
+      .catch(function () { btn.disabled = false; $('pEnviarT').textContent = 'Enviar propuesta'; $('pAviso').textContent = 'No hubo respuesta. Probá de nuevo en un momento.'; });
+  });
+
+  /* ───────── arranque ───────── */
+  if (invitado) { var s = $('saludo'); s.textContent = 'Hola, '; s.appendChild(el('em', '', invitado)); }
+  $('demo').hidden = !DEMO;
+  var prev = leer('agenda-reserva');
+  if (prev && prev.fecha && TIPOS[prev.tipo] && prev.fecha >= ymdEnZona(Date.now())) {
+    var y = $('yaT'); y.textContent = 'Ya tenés agendado: ';
+    y.appendChild(el('b', '', TIPOS[prev.tipo].nombre.toLowerCase() + ' el ' + fechaLarga(prev.fecha) + ' a las ' + prev.hora));
+    y.appendChild(document.createTextNode('.')); $('ya').hidden = false;
+  }
+  window.addEventListener('hashchange', function () { location.reload(); });
+  pintarTipos(); cargar();
+})();
+</script>
+</body>
+</html>
